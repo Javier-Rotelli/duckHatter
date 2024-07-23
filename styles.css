@@ -1,0 +1,43 @@
+@property --y {
+  inherits: false;
+  initial-value: 0;
+  syntax: "<integer>";
+}
+:root {
+  --position: 1;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f0f0f0;
+}
+
+.container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  & > * {
+    position: absolute;
+  }
+}
+
+.hat {
+  --x: calc(mod(var(--position), 8));
+  --y: calc(var(--position) / 8); /*ROUND!, needs to be ceil */
+  width: 32px;
+  height: 32px;
+  background: url("assets/hatCollection.png");
+  background-position: calc(var(--x) * -32px) 0;
+
+  z-index: 1;
+
+  /* &::before {
+    counter-reset: x var(--x) y var(--y);
+    content: counter(x) ", " counter(y);
+  } */
+}
