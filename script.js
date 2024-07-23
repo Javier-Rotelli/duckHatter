@@ -1,5 +1,4 @@
-const range = (start, stop, step = 1) =>
-  Array.from({ length: (stop - start) / step + 1 }, (_, i) => start + i * step);
+import { createHats, updateHatsPositions } from "./hats.js";
 
 function docReady(fn) {
   // see if DOM is already available
@@ -19,39 +18,19 @@ function docReady(fn) {
     navigator.msGetUserMedia;
 }
 
-const validPositions = [...range(1, 7), ...range(9, 15), ...range(16, 20), 22];
-
-function getBackgroundPosition(pos) {
-  const x = pos % 8;
-  const y = Math.floor(pos / 8);
-  return [x * -32, y * -32];
-}
-
-function changeHat(element, pos) {
-  const [x, y] = getBackgroundPosition(pos);
-  console.log(pos, x, y);
-  element.style.setProperty("--x", `${x}px`);
-  element.style.setProperty("--y", `${y}px`);
-}
-
-function randomizeHat(i) {
-  const pos = validPositions[Math.floor(Math.random() * validPositions.length)];
-  changeHat(document.getElementById(`hat${i}`), pos);
-}
-
 async function run() {
-  randomizeHat(1);
-  randomizeHat(2);
-  randomizeHat(3);
-  randomizeHat(4);
-
-  // load the models
-  // await faceapi.nets.ssdMobilenetv1.loadFromUri("/weights");
   await faceapi.loadTinyFaceDetectorModel("/weights");
+  await faceapi.loadFaceRecognitionModel("/weights");
+  await faceapi.loadFaceLandmarkModel("/weights");
 
+  const options = new faceapi.TinyFaceDetectorOptions({
+    inputSize: 512,
+    scoreThreshold: 0.5,
+  });
   // try to access users webcam and stream the images
   // to the video element
   const videoEl = document.getElementById("inputVideo");
+  videoEl.addEventListener("play", () => onPlay(options));
 
   navigator.getUserMedia(
     { video: {} },
@@ -60,42 +39,35 @@ async function run() {
   );
 }
 
-const xCorrection = 2.5;
-const yCorrection = -3.5;
+let faces = 0;
 
-async function onPlay() {
+async function onPlay(options) {
   const videoEl = document.getElementById("inputVideo");
 
   if (videoEl.paused || videoEl.ended) return setTimeout(() => onPlay());
 
-  const options = new faceapi.TinyFaceDetectorOptions({
-    inputSize: 512,
-    scoreThreshold: 0.5,
-  });
+  const results = await faceapi
+    .detectAllFaces(videoEl, options)
+    .withFaceLandmarks()
+    .withFaceDescriptors();
 
-  const results = await faceapi.detectAllFaces(videoEl, options);
+  faces = (faces + results.length) / 2;
+  console.log(faces);
+
   const canvas = document.getElementById("overlay");
   const dims = faceapi.matchDimensions(canvas, videoEl, true);
   const resizedResults = faceapi.resizeResults(results, dims);
 
-  resizedResults.forEach((resizedResult, i) => {
+  const facesFract = faces % 1;
+  if (facesFract < 0.1 || facesFract > 0.9) {
+    updateHatsPositions(resizedResults.map((res) => res.detection));
+  }
+  resizedResults.forEach((resizedResult) => {
     faceapi.draw.drawDetections(canvas, resizedResult);
-
-    const hatElement = document.getElementById(`hat${i + 1}`);
-
-    const scaleFactor = (resizedResult.box.width / 24) * 2.5;
-
-    hatElement.style.top = `${
-      resizedResult.box.top + yCorrection * scaleFactor
-    }px`;
-    hatElement.style.left = `${
-      resizedResult.box.left + xCorrection * scaleFactor
-    }px`;
-
-    hatElement.style.transform = `scale(${scaleFactor})`;
+    faceapi.draw.drawFaceLandmarks(canvas, resizedResult);
   });
 
-  setTimeout(() => onPlay());
+  setTimeout(() => onPlay(options));
 }
 
 docReady(run);
