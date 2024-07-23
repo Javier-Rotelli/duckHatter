@@ -1,4 +1,4 @@
-import { createHats, updateHatsPositions } from "./hats.js";
+import { updateHatsPositions } from "./hats.js";
 
 function docReady(fn) {
   // see if DOM is already available
@@ -11,11 +11,6 @@ function docReady(fn) {
   } else {
     document.addEventListener("DOMContentLoaded", fn);
   }
-  navigator.getUserMedia =
-    navigator.getUserMedia ||
-    navigator.webkitGetUserMedia ||
-    navigator.mozGetUserMedia ||
-    navigator.msGetUserMedia;
 }
 
 async function run() {
@@ -32,18 +27,19 @@ async function run() {
   const videoEl = document.getElementById("inputVideo");
   videoEl.addEventListener("play", () => onPlay(options));
 
-  navigator.getUserMedia(
-    { video: {} },
-    (stream) => (videoEl.srcObject = stream),
-    (err) => console.error(err)
-  );
+  const stream = await navigator.mediaDevices?.getUserMedia({
+    video: { width: window.innerWidth, height: window.innerHeight },
+  });
+
+  videoEl.srcObject = stream;
 }
 
 let faces = 0;
 
-async function onPlay(options) {
-  const videoEl = document.getElementById("inputVideo");
+const canvas = document.getElementById("overlay");
+const videoEl = document.getElementById("inputVideo");
 
+async function onPlay(options) {
   if (videoEl.paused || videoEl.ended) return setTimeout(() => onPlay());
 
   const results = await faceapi
@@ -52,9 +48,7 @@ async function onPlay(options) {
     .withFaceDescriptors();
 
   faces = (faces + results.length) / 2;
-  console.log(faces);
 
-  const canvas = document.getElementById("overlay");
   const dims = faceapi.matchDimensions(canvas, videoEl, true);
   const resizedResults = faceapi.resizeResults(results, dims);
 
@@ -62,10 +56,10 @@ async function onPlay(options) {
   if (facesFract < 0.1 || facesFract > 0.9) {
     updateHatsPositions(resizedResults.map((res) => res.detection));
   }
-  resizedResults.forEach((resizedResult) => {
-    faceapi.draw.drawDetections(canvas, resizedResult);
-    faceapi.draw.drawFaceLandmarks(canvas, resizedResult);
-  });
+  // resizedResults.forEach((resizedResult) => {
+  //   faceapi.draw.drawDetections(canvas, resizedResult);
+  //   faceapi.draw.drawFaceLandmarks(canvas, resizedResult);
+  // });
 
   setTimeout(() => onPlay(options));
 }

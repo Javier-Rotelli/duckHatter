@@ -34,16 +34,11 @@ const makeNewHat = (i) => {
 
 const hats = [];
 
-export function createHats() {
-  for (let i = 0; i <= 4; i++) {
-    hats.push(makeNewHat(i));
-  }
-}
-
 const xCorrection = 2.5;
 const yCorrection = -3.5;
 
 export function updateHatsPositions(resizedResults) {
+  // console.log(resizedResults);
   resizedResults.sort((a, b) => {
     return b.box.left + b.box.top - (a.box.left + a.box.top);
   });
@@ -57,22 +52,26 @@ export function updateHatsPositions(resizedResults) {
 
   hats.forEach((hat, i) => {
     const resizedResult = resizedResults[i];
-    console.log(resizedResult?.box.top, resizedResult?.box.left);
+    // console.log(resizedResult?.box.top, resizedResult?.box.left);
     if (!resizedResult) {
       hat.left = -64;
-      hat.el.style.left = "-64px";
+      hat.el.style.left = "-1064px";
       hat.el.style.transform = `scale(1)`;
       return;
     }
 
-    const scaleFactor = (resizedResult.box.width / 24) * 2.5;
+    const scaleFactorX = (resizedResult.box.width / 24) * 2.5;
+    const scaleFactorY = (resizedResult.box.height / 24) * 2.5;
 
-    hat.top = resizedResult.box.top;
-    hat.el.style.top = `${hat.top + yCorrection * scaleFactor}px`;
+    hat.top = resizedResult.box.top / resizedResult.imageDims.height;
+    hat.el.style.top = `${hat.top * 100}%`;
 
-    hat.left = resizedResult.box.left;
-    hat.el.style.left = `${hat.left + xCorrection * scaleFactor}px`;
+    hat.el.style.marginTop = `${yCorrection * scaleFactorY}px`;
 
-    hat.el.style.transform = `scale(${scaleFactor})`;
+    hat.left = resizedResult.box.left / resizedResult.imageDims.width;
+    hat.el.style.left = `${hat.left * 100}%`;
+    hat.el.style.marginLeft = `${xCorrection * scaleFactorX}px`;
+
+    hat.el.style.transform = `scale(${scaleFactorX},${scaleFactorY})`;
   });
 }
