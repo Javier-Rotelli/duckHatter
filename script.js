@@ -14,9 +14,9 @@ function docReady(fn) {
 }
 
 async function run() {
-  await faceapi.loadTinyFaceDetectorModel("/weights");
-  await faceapi.loadFaceRecognitionModel("/weights");
-  await faceapi.loadFaceLandmarkModel("/weights");
+  await faceapi.loadTinyFaceDetectorModel("./weights");
+  await faceapi.loadFaceRecognitionModel("./weights");
+  await faceapi.loadFaceLandmarkModel("./weights");
 
   const options = new faceapi.TinyFaceDetectorOptions({
     inputSize: 512,
