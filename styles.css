@@ -1,10 +1,6 @@
-@property --y {
-  inherits: false;
-  initial-value: 0;
-  syntax: "<integer>";
-}
 :root {
-  --position: 1;
+  --x: -32px;
+  --y: 0;
 }
 
 body {
@@ -27,12 +23,12 @@ body {
 }
 
 .hat {
-  --x: calc(mod(var(--position), 8));
-  --y: calc(var(--position) / 8); /*ROUND!, needs to be ceil */
+  transition: 0.1s;
+  image-rendering: pixelated;
   width: 32px;
   height: 32px;
   background: url("assets/hatCollection.png");
-  background-position: calc(var(--x) * -32px) 0;
+  background-position: var(--x) var(--y);
 
   z-index: 1;
 

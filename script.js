@@ -1,3 +1,6 @@
+const range = (start, stop, step = 1) =>
+  Array.from({ length: (stop - start) / step + 1 }, (_, i) => start + i * step);
+
 function docReady(fn) {
   // see if DOM is already available
   if (
@@ -9,16 +12,47 @@ function docReady(fn) {
   } else {
     document.addEventListener("DOMContentLoaded", fn);
   }
+  navigator.getUserMedia =
+    navigator.getUserMedia ||
+    navigator.webkitGetUserMedia ||
+    navigator.mozGetUserMedia ||
+    navigator.msGetUserMedia;
+}
+
+const validPositions = [...range(1, 7), ...range(9, 15), ...range(16, 20), 22];
+
+function getBackgroundPosition(pos) {
+  const x = pos % 8;
+  const y = Math.floor(pos / 8);
+  return [x * -32, y * -32];
+}
+
+function changeHat(element, pos) {
+  const [x, y] = getBackgroundPosition(pos);
+  console.log(pos, x, y);
+  element.style.setProperty("--x", `${x}px`);
+  element.style.setProperty("--y", `${y}px`);
+}
+
+function randomizeHat(i) {
+  const pos = validPositions[Math.floor(Math.random() * validPositions.length)];
+  changeHat(document.getElementById(`hat${i}`), pos);
 }
 
 async function run() {
+  randomizeHat(1);
+  randomizeHat(2);
+  randomizeHat(3);
+  randomizeHat(4);
+
   // load the models
+  // await faceapi.nets.ssdMobilenetv1.loadFromUri("/weights");
   await faceapi.loadTinyFaceDetectorModel("/weights");
-  await faceapi.loadFaceRecognitionModel("/weights");
 
   // try to access users webcam and stream the images
   // to the video element
   const videoEl = document.getElementById("inputVideo");
+
   navigator.getUserMedia(
     { video: {} },
     (stream) => (videoEl.srcObject = stream),
@@ -26,8 +60,8 @@ async function run() {
   );
 }
 
-let xCorrection = 2.5;
-let yCorrection = -3.5;
+const xCorrection = 2.5;
+const yCorrection = -3.5;
 
 async function onPlay() {
   const videoEl = document.getElementById("inputVideo");
@@ -39,16 +73,15 @@ async function onPlay() {
     scoreThreshold: 0.5,
   });
 
-  const result = await faceapi.detectSingleFace(videoEl, options);
+  const results = await faceapi.detectAllFaces(videoEl, options);
+  const canvas = document.getElementById("overlay");
+  const dims = faceapi.matchDimensions(canvas, videoEl, true);
+  const resizedResults = faceapi.resizeResults(results, dims);
 
-  if (result) {
-    const canvas = document.getElementById("overlay");
-    const dims = faceapi.matchDimensions(canvas, videoEl, true);
-
-    const resizedResult = faceapi.resizeResults(result, dims);
+  resizedResults.forEach((resizedResult, i) => {
     faceapi.draw.drawDetections(canvas, resizedResult);
 
-    const hatElement = document.getElementById("hat");
+    const hatElement = document.getElementById(`hat${i + 1}`);
 
     const scaleFactor = (resizedResult.box.width / 24) * 2.5;
 
@@ -60,8 +93,7 @@ async function onPlay() {
     }px`;
 
     hatElement.style.transform = `scale(${scaleFactor})`;
-    console.log(xCorrection, yCorrection);
-  }
+  });
 
   setTimeout(() => onPlay());
 }
